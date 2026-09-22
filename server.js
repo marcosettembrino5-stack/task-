@@ -94,8 +94,20 @@ function makePgStorage() {
     connectionString: process.env.DATABASE_URL,
     ssl: { rejectUnauthorized: false } // Neon richiede SSL
   });
+  // Attende che il database sia raggiungibile, con alcuni tentativi (utile quando il container parte).
+  async function waitForDb(tries = 8) {
+    for (let i = 1; i <= tries; i++) {
+      try { await pool.query("SELECT 1"); return; }
+      catch (e) {
+        console.log(`Tentativo di connessione al DB ${i}/${tries} fallito: ${e.code || e.message}`);
+        if (i === tries) throw e;
+        await new Promise(r => setTimeout(r, 3000));
+      }
+    }
+  }
   return {
     async init() {
+      await waitForDb();
       await pool.query(`
         CREATE TABLE IF NOT EXISTS people ( name TEXT PRIMARY KEY );
         CREATE TABLE IF NOT EXISTS photos (
@@ -198,11 +210,24 @@ app.use(express.static(PUBLIC_DIR));
 // ---- Avvio ----
 async function start() {
   storage = USE_PG ? makePgStorage() : makeFileStorage();
-  await storage.init();
+  try {
+    await storage.init();
+  } catch (e) {
+    if (USE_PG) {
+      // DATABASE_URL è impostata ma il DB non risponde: NON ripieghiamo sul file locale
+      // (perderemmo i dati in silenzio). Meglio fermarsi con un errore chiaro e far
+      // riprovare la piattaforma a riavviare, così i dati restano sempre su Neon.
+      console.error("ERRORE: DATABASE_URL è impostata ma non riesco a connettermi al database.");
+      console.error("Non parto in modalità file locale per non rischiare di perdere i dati.");
+      console.error("Dettaglio:", e.message);
+      process.exit(1);
+    }
+    throw e;
+  }
   const PORT = process.env.PORT || 3000;
   app.listen(PORT, () => {
     console.log(`Portale task foto in ascolto sulla porta ${PORT}`);
-    console.log(`Storage: ${USE_PG ? "Postgres (Neon)" : "file JSON locale"}`);
+    console.log(`Storage: ${USE_PG ? "Postgres (Neon) — dati persistenti e condivisi" : "file JSON locale (solo sviluppo)"}`);
     console.log(`Foto trovate: ${listFoto().length}`);
   });
 }
