@@ -1,0 +1,16 @@
+# Configurazione per il deploy su Render.com
+# Include un disco persistente da 1 GB per non perdere i task/assegnazioni tra i riavvii.
+services:
+  - type: web
+    name: portale-task-foto
+    runtime: node
+    plan: free
+    buildCommand: npm install
+    startCommand: node server.js
+    envVars:
+      - key: DATA_DIR
+        value: /var/data
+    disk:
+      name: dati
+      mountPath: /var/data
+      sizeGB: 1

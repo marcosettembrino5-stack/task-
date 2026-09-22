@@ -1,0 +1,16 @@
+{
+  "name": "portale-task-foto",
+  "version": "1.0.0",
+  "description": "Portale condiviso per assegnare ed eseguire task sulle foto",
+  "main": "server.js",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "express": "^4.19.2"
+  }
+}

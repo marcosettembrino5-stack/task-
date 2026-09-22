@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Portale Task Foto (condiviso)</title>
+<style>
+  :root{
+    --bg:#0f1220; --panel:#1a1f36; --panel2:#232a4d; --txt:#e8ebf7;
+    --muted:#9aa3c7; --accent:#4f7cff; --accent2:#00c2a8; --border:#2c3460;
+    --danger:#ff5a7a; --ok:#37d67a;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    background:var(--bg);color:var(--txt);}
+  header{position:sticky;top:0;z-index:20;background:linear-gradient(180deg,#141830,#141830ee);
+    border-bottom:1px solid var(--border);padding:12px 18px;display:flex;flex-wrap:wrap;gap:10px;align-items:center;}
+  header h1{font-size:17px;margin:0;margin-right:auto;font-weight:650;letter-spacing:.3px}
+  .btn{background:var(--panel2);color:var(--txt);border:1px solid var(--border);border-radius:9px;
+    padding:8px 13px;font-size:13px;cursor:pointer;transition:.15s;white-space:nowrap;text-decoration:none;display:inline-block}
+  .btn:hover{border-color:var(--accent);background:#2b3363}
+  .btn.primary{background:var(--accent);border-color:var(--accent)}
+  .stat{font-size:12px;color:var(--muted);padding:6px 10px;background:var(--panel);border-radius:8px;border:1px solid var(--border)}
+  .stat b{color:var(--accent2)}
+  .toolbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;padding:10px 18px;background:#12162b;border-bottom:1px solid var(--border)}
+  select,input[type=text]{background:var(--panel);color:var(--txt);border:1px solid var(--border);
+    border-radius:8px;padding:7px 10px;font-size:13px}
+  .container{padding:18px;max-width:1400px;margin:0 auto}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:16px}
+  .card{background:var(--panel);border:1px solid var(--border);border-radius:14px;overflow:hidden;display:flex;flex-direction:column;transition:.15s}
+  .card.done{border-color:var(--ok);box-shadow:0 0 0 1px var(--ok) inset}
+  .thumb{position:relative;background:#000;aspect-ratio:4/3;display:flex;align-items:center;justify-content:center;cursor:zoom-in;overflow:hidden}
+  .thumb img{width:100%;height:100%;object-fit:contain;pointer-events:none}
+  .thumb .num{position:absolute;top:8px;left:8px;background:#000a;color:#fff;font-size:12px;padding:3px 8px;border-radius:20px;pointer-events:none}
+  .thumb::after{content:"🔍 ingrandisci";position:absolute;bottom:8px;right:8px;background:#000a;color:#fff;font-size:11px;padding:3px 8px;border-radius:20px;pointer-events:none;opacity:0;transition:.15s}
+  .thumb:hover::after{opacity:1}
+  .body{padding:12px;display:flex;flex-direction:column;gap:9px}
+  .fname{font-size:11px;color:var(--muted);word-break:break-all;line-height:1.3}
+  textarea{width:100%;min-height:70px;resize:vertical;background:var(--panel2);color:var(--txt);
+    border:1px solid var(--border);border-radius:9px;padding:9px;font-size:13px;font-family:inherit;line-height:1.4}
+  textarea:focus{outline:none;border-color:var(--accent)}
+  .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+  .row select{flex:1;min-width:120px}
+  .chk{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--muted);cursor:pointer;user-select:none}
+  .chk input{width:16px;height:16px;accent-color:var(--ok)}
+  .lb{position:fixed;inset:0;background:#000e;z-index:100;display:none;flex-direction:column}
+  .lb.open{display:flex}
+  .lb-top{display:flex;gap:10px;align-items:center;padding:12px 18px;color:#fff;flex:0 0 auto}
+  .lb-top .sp{margin-left:auto}
+  .lb-main{flex:1 1 auto;display:flex;align-items:center;justify-content:center;padding:0 60px;position:relative;min-height:0;overflow:hidden}
+  .lb-main img{max-width:100%;max-height:100%;width:auto;height:auto;object-fit:contain;display:block}
+  .nav{position:absolute;top:50%;transform:translateY(-50%);background:#fff2;border:none;color:#fff;
+    font-size:30px;width:52px;height:52px;border-radius:50%;cursor:pointer}
+  .nav:hover{background:#fff4}
+  .nav.prev{left:10px}.nav.next{right:10px}
+  .lb-bottom{background:#141830;border-top:1px solid var(--border);padding:14px 18px;display:flex;gap:12px;flex-wrap:wrap;align-items:flex-start;flex:0 0 auto}
+  .lb-bottom textarea{flex:1;min-width:280px;min-height:60px}
+  .lb-bottom .side{display:flex;flex-direction:column;gap:8px;min-width:220px}
+  .hint{font-size:12px;color:var(--muted)}
+  .badge{font-size:11px;padding:2px 8px;border-radius:20px;background:var(--panel2);border:1px solid var(--border);color:var(--muted)}
+  .empty{padding:40px;text-align:center;color:var(--muted)}
+  .people-mgr{display:flex;gap:6px;align-items:center}
+  #saveInd{font-size:12px;color:var(--muted)}
+  #saveInd.saving{color:var(--accent2)}
+  #saveInd.error{color:var(--danger)}
+</style>
+</head>
+<body>
+<header>
+  <h1>📋 Portale Task Foto <span class="hint">· condiviso</span></h1>
+  <span class="stat">Foto: <b id="stTot">0</b></span>
+  <span class="stat">Con task: <b id="stTask">0</b></span>
+  <span class="stat">Fatte: <b id="stDone">0</b></span>
+  <span id="saveInd">●&nbsp;connesso</span>
+  <a class="btn" href="/api/export.csv">⬇ Esporta CSV (Excel)</a>
+</header>
+
+<div class="toolbar">
+  <span class="hint">Filtra:</span>
+  <select id="filterState">
+    <option value="all">Tutte</option>
+    <option value="task">Solo con task</option>
+    <option value="notask">Solo senza task</option>
+    <option value="done">Solo fatte</option>
+    <option value="notdone">Solo da fare</option>
+  </select>
+  <select id="filterPerson"><option value="all">Tutte le persone</option></select>
+  <span class="hint">|</span>
+  <div class="people-mgr">
+    <input type="text" id="newPerson" placeholder="Aggiungi persona...">
+    <button class="btn" id="btnAddPerson">+ Persona</button>
+  </div>
+  <span class="hint" style="margin-left:auto">🔄 Aggiornamento automatico · dati condivisi</span>
+</div>
+
+<div class="container">
+  <div id="grid" class="grid"></div>
+  <div id="empty" class="empty" style="display:none">Nessuna foto corrisponde al filtro.</div>
+</div>
+
+<div class="lb" id="lb">
+  <div class="lb-top">
+    <span id="lbNum" class="badge"></span>
+    <span id="lbName" class="hint"></span>
+    <span class="sp"></span>
+    <label class="chk"><input type="checkbox" id="lbDone"> Fatto</label>
+    <button class="btn" id="lbClose" style="color:#fff">✕ Chiudi</button>
+  </div>
+  <div class="lb-main">
+    <button class="nav prev" id="lbPrev">‹</button>
+    <img id="lbImg" alt="">
+    <button class="nav next" id="lbNext">›</button>
+  </div>
+  <div class="lb-bottom">
+    <textarea id="lbNote" placeholder="Scrivi qui cosa va fatto su questa foto..."></textarea>
+    <div class="side">
+      <label class="hint">Assegna a:</label>
+      <select id="lbPerson"><option value="">— Nessuno —</option></select>
+      <span class="hint">← / → per scorrere · Esc per chiudere</span>
+    </div>
+  </div>
+</div>
+
+<script>
+const $ = s => document.querySelector(s);
+const grid = $("#grid");
+let PHOTOS = [];   // [{file, note, person, done}]
+let PEOPLE = [];
+let byFile = {};   // file -> photo obj
+
+function esc(t){ return (t||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
+function fotoUrl(f){ return "foto/" + encodeURIComponent(f); }
+
+function setInd(txt, cls){ const el=$("#saveInd"); el.textContent = txt; el.className = cls||""; }
+
+// ---- Caricamento stato dal server ----
+async function loadState(){
+  try{
+    const r = await fetch("api/state");
+    const data = await r.json();
+    PHOTOS = data.photos || [];
+    PEOPLE = data.people || [];
+    byFile = {}; PHOTOS.forEach(p=> byFile[p.file]=p);
+    render();
+    setInd("● connesso");
+  }catch(e){ setInd("● offline — controlla la connessione", "error"); }
+}
+
+// ---- Salvataggio su server ----
+async function saveField(file, patch){
+  setInd("● salvataggio…", "saving");
+  try{
+    const r = await fetch("api/photo", {
+      method:"POST", headers:{"Content-Type":"application/json"},
+      body: JSON.stringify(Object.assign({file}, patch))
+    });
+    if(!r.ok) throw new Error();
+    setInd("● salvato");
+  }catch(e){ setInd("● errore di salvataggio", "error"); }
+}
+
+// Debounce per le note (non salva a ogni tasto)
+const noteTimers = {};
+function saveNoteDebounced(file, val){
+  if(byFile[file]) byFile[file].note = val;
+  clearTimeout(noteTimers[file]);
+  noteTimers[file] = setTimeout(()=> saveField(file, {note: val}), 500);
+  updateStats();
+}
+
+// ---- Filtri ----
+function passesFilter(p){
+  const st = $("#filterState").value;
+  const per = $("#filterPerson").value;
+  const hasTask = !!(p.note && p.note.trim());
+  if(st==="task" && !hasTask) return false;
+  if(st==="notask" && hasTask) return false;
+  if(st==="done" && !p.done) return false;
+  if(st==="notdone" && p.done) return false;
+  if(per==="__none__" && p.person) return false;
+  if(per!=="all" && per!=="__none__" && p.person!==per) return false;
+  return true;
+}
+
+function personOptions(sel){
+  return '<option value="">— Nessuno —</option>' +
+    PEOPLE.map(p=>`<option value="${esc(p)}"${p===sel?" selected":""}>${esc(p)}</option>`).join("");
+}
+
+// ---- Render ----
+function render(){
+  // filtro persone
+  const fp = $("#filterPerson"); const fpv = fp.value;
+  fp.innerHTML = '<option value="all">Tutte le persone</option><option value="__none__">Non assegnate</option>' +
+    PEOPLE.map(p=>`<option value="${esc(p)}">${esc(p)}</option>`).join("");
+  fp.value = fpv || "all";
+
+  grid.innerHTML = "";
+  let shown = 0;
+  PHOTOS.forEach((p, i)=>{
+    if(!passesFilter(p)) return;
+    shown++;
+    const card = document.createElement("div");
+    card.className = "card" + (p.done ? " done":"");
+    card.innerHTML = `
+      <div class="thumb" data-i="${i}">
+        <span class="num">#${i+1}</span>
+        <img loading="lazy" src="${fotoUrl(p.file)}" alt="">
+      </div>
+      <div class="body">
+        <div class="fname">${esc(p.file)}</div>
+        <textarea class="noteArea" data-f="${esc(p.file)}" placeholder="Cosa va fatto su questa foto...">${esc(p.note)}</textarea>
+        <div class="row">
+          <select class="personSel" data-f="${esc(p.file)}">${personOptions(p.person)}</select>
+          <label class="chk"><input type="checkbox" class="doneChk" data-f="${esc(p.file)}" ${p.done?"checked":""}> Fatto</label>
+        </div>
+      </div>`;
+    grid.appendChild(card);
+  });
+  $("#empty").style.display = shown ? "none":"block";
+  updateStats();
+}
+
+function updateStats(){
+  $("#stTot").textContent = PHOTOS.length;
+  $("#stTask").textContent = PHOTOS.filter(p=>p.note && p.note.trim()).length;
+  $("#stDone").textContent = PHOTOS.filter(p=>p.done).length;
+}
+
+// ---- Eventi griglia ----
+grid.addEventListener("input", e=>{
+  if(e.target.classList.contains("noteArea")) saveNoteDebounced(e.target.dataset.f, e.target.value);
+});
+grid.addEventListener("change", e=>{
+  const f = e.target.dataset.f;
+  if(e.target.classList.contains("personSel")){
+    if(byFile[f]) byFile[f].person = e.target.value;
+    saveField(f, {person:e.target.value});
+  }
+  if(e.target.classList.contains("doneChk")){
+    if(byFile[f]) byFile[f].done = e.target.checked;
+    e.target.closest(".card").classList.toggle("done", e.target.checked);
+    saveField(f, {done:e.target.checked});
+    updateStats();
+  }
+});
+grid.addEventListener("click", e=>{
+  const t = e.target.closest(".thumb");
+  if(t) openLb(parseInt(t.dataset.i,10));
+});
+
+// ---- Lightbox ----
+let lbIndex = 0;
+function openLb(i){
+  lbIndex = i; const p = PHOTOS[i];
+  const img = $("#lbImg"); img.removeAttribute("src"); img.src = fotoUrl(p.file);
+  $("#lbNum").textContent = `#${i+1} / ${PHOTOS.length}`;
+  $("#lbName").textContent = p.file;
+  $("#lbNote").value = p.note || "";
+  $("#lbPerson").innerHTML = personOptions(p.person);
+  $("#lbDone").checked = !!p.done;
+  $("#lb").classList.add("open");
+  document.body.style.overflow = "hidden";
+}
+function closeLb(){ $("#lb").classList.remove("open"); document.body.style.overflow=""; render(); }
+function lbGo(d){ let n=lbIndex+d; if(n<0)n=PHOTOS.length-1; if(n>=PHOTOS.length)n=0; openLb(n); }
+$("#lbClose").onclick = closeLb;
+$("#lbPrev").onclick = ()=>lbGo(-1);
+$("#lbNext").onclick = ()=>lbGo(1);
+$("#lbNote").addEventListener("input", e=>{ const f=PHOTOS[lbIndex].file; saveNoteDebounced(f, e.target.value); });
+$("#lbPerson").addEventListener("change", e=>{ const f=PHOTOS[lbIndex].file; if(byFile[f])byFile[f].person=e.target.value; saveField(f,{person:e.target.value}); });
+$("#lbDone").addEventListener("change", e=>{ const f=PHOTOS[lbIndex].file; if(byFile[f])byFile[f].done=e.target.checked; saveField(f,{done:e.target.checked}); });
+document.addEventListener("keydown", e=>{
+  if(!$("#lb").classList.contains("open")) return;
+  if(e.key==="Escape") closeLb();
+  else if(e.key==="ArrowLeft") lbGo(-1);
+  else if(e.key==="ArrowRight") lbGo(1);
+});
+
+// ---- Persone ----
+async function addPerson(){
+  const inp = $("#newPerson"); const v=(inp.value||"").trim();
+  if(!v) { inp.focus(); return; }
+  try{
+    const r = await fetch("api/person", {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({name:v})});
+    const data = await r.json();
+    if(data.people){ PEOPLE = data.people; }
+    inp.value=""; render(); inp.focus();
+  }catch(e){ setInd("● errore", "error"); }
+}
+$("#btnAddPerson").addEventListener("click", addPerson);
+$("#newPerson").addEventListener("keydown", e=>{ if(e.key==="Enter"){ e.preventDefault(); addPerson(); } });
+
+$("#filterState").onchange = render;
+$("#filterPerson").onchange = render;
+
+// ---- Aggiornamento periodico (vede le modifiche degli altri) ----
+// Non ricarica se il lightbox è aperto o se stai scrivendo in un campo.
+setInterval(()=>{
+  if($("#lb").classList.contains("open")) return;
+  if(document.activeElement && ["TEXTAREA","INPUT","SELECT"].includes(document.activeElement.tagName)) return;
+  loadState();
+}, 8000);
+
+// ---- Avvio ----
+loadState();
+</script>
+</body>
+</html>

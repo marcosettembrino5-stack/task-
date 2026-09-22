@@ -1,0 +1,4 @@
+node_modules/
+portale-data.json
+portale-data.json.tmp
+*.log
