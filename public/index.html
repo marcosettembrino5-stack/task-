@@ -85,6 +85,7 @@
     <option value="notdone">Solo da fare</option>
   </select>
   <select id="filterPerson"><option value="all">Tutte le persone</option></select>
+  <button class="btn" id="btnHideDone">🙈 Nascondi completate</button>
   <span class="hint">|</span>
   <div class="people-mgr">
     <input type="text" id="newPerson" placeholder="Aggiungi persona...">
@@ -169,10 +170,13 @@ function saveNoteDebounced(file, val){
 }
 
 // ---- Filtri ----
+// Stato "nascondi completate": ricordato nel browser di ciascuno.
+let hideDone = localStorage.getItem("hideDone") === "1";
 function passesFilter(p){
   const st = $("#filterState").value;
   const per = $("#filterPerson").value;
   const hasTask = !!(p.note && p.note.trim());
+  if(hideDone && p.done) return false;   // nascondi le completate se attivo
   if(st==="task" && !hasTask) return false;
   if(st==="notask" && hasTask) return false;
   if(st==="done" && !p.done) return false;
@@ -293,6 +297,25 @@ $("#newPerson").addEventListener("keydown", e=>{ if(e.key==="Enter"){ e.preventD
 
 $("#filterState").onchange = render;
 $("#filterPerson").onchange = render;
+
+// ---- Toggle "Nascondi / Mostra completate" ----
+function updateHideBtn(){
+  const b = $("#btnHideDone");
+  if(hideDone){
+    b.textContent = "👁 Mostra completate";
+    b.classList.add("primary");
+  } else {
+    b.textContent = "🙈 Nascondi completate";
+    b.classList.remove("primary");
+  }
+}
+$("#btnHideDone").addEventListener("click", ()=>{
+  hideDone = !hideDone;
+  localStorage.setItem("hideDone", hideDone ? "1" : "0");
+  updateHideBtn();
+  render();
+});
+updateHideBtn();
 
 // ---- Aggiornamento periodico (vede le modifiche degli altri) ----
 // Non ricarica se il lightbox è aperto o se stai scrivendo in un campo.
